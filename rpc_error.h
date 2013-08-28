@@ -24,6 +24,7 @@ public:
 		NO_DATA_MSG,
 		NO_CMD_MSG,
 		UNKNOWN_CMD,
+		ETH_ERROR,
 		UNDEF
 	} error;
 	CRpcError() : error(CRpcError::OK) {}
@@ -47,6 +48,7 @@ public:
 			case NO_DATA_MSG:     return "NO_DATA_MSG";
 			case NO_CMD_MSG:      return "NO_CMD_MSG";
 			case UNKNOWN_CMD:     return "UNKNOWN_CMD";
+			case ETH_ERROR:       return "ETH_ERROR";
 			case UNDEF:           return "UNDEF";
 		}
 		return "?";

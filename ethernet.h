@@ -10,6 +10,9 @@
 
 #include<deque>
 #include<string>
+
+#include<pcap.h>
+
 #include "rpc_io.h"
 
 
@@ -21,29 +24,32 @@
 
 class Ethernet : public CRpcIo
 {
-	void init_tx_frame();
-	void init_connection(std::string eth_if);
+    void init_tx_frame();
+    void init_connection(std::string eth_if);
 
-	int s;
-	unsigned char      rx_frame[RX_FRAME_SIZE];
-	std::deque<unsigned char>    rx_buffer;
-	unsigned char      tx_frame[TX_FRAME_SIZE];
-	unsigned char      dst_addr[6];
-	unsigned char      src_addr[6];
-	
-	unsigned int       tx_payload_size;//data in tx buffer minus header(14 bytes)
-	bool                is_open;
+    //pcap data structures
+    pcap_t* descr;
+    struct pcap_pkthdr header;
+     
+    //unsigned char      rx_frame[RX_FRAME_SIZE];
+    std::deque<unsigned char>    rx_buffer;
+    unsigned char      tx_frame[TX_FRAME_SIZE];
+    unsigned char      dst_addr[6];
+    unsigned char      src_addr[6];
+    
+    unsigned int       tx_payload_size;//data in tx buffer minus header(14 bytes)
+    bool                is_open;
 public:
-	Ethernet();
-	Ethernet(std::string interface);
-	~Ethernet();
+    Ethernet();
+    Ethernet(std::string interface);
+    ~Ethernet();
 
-	void Write(const void *buffer, unsigned int size);
-	void Flush();
-	void Clear();
-	void Read(void *buffer, unsigned int size);
-	void Close();
-	bool IsOpen();
+    void Write(const void *buffer, unsigned int size);
+    void Flush();
+    void Clear();
+    void Read(void *buffer, unsigned int size);
+    void Close();
+    bool IsOpen();
 };
 
 #endif
