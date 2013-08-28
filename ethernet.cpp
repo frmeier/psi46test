@@ -8,9 +8,6 @@
 #include "ethernet.h"
 #include "rpc_error.h"
 
-#include <cstdio> //for printf
-
-
 Ethernet::Ethernet(){
     std::string eth_if("eth0");
     init_connection(eth_if);
@@ -33,7 +30,6 @@ void Ethernet::Write(const void *buffer, unsigned int size){
 void Ethernet::Flush(){
     tx_frame[12] = tx_payload_size >> 8;
     tx_frame[13] = tx_payload_size;
-    //write(s,tx_frame,tx_payload_size + ETH_DATA_OFFSET); // change this
     pcap_sendpacket(descr, tx_frame, tx_payload_size + ETH_DATA_OFFSET);
     tx_payload_size = 0;
 }
@@ -42,23 +38,40 @@ void Ethernet::Clear(){
     rx_buffer.clear();
 }
 void Ethernet::Read(void *buffer, unsigned int size){
+    int timeout = 1000;
     for(unsigned int i = 0; i < size; i++){
         if(!rx_buffer.empty()){
             ((unsigned char*)buffer)[i] = rx_buffer.front();
             rx_buffer.pop_front();
         } else{
-                //size_t bytesRead = read(s,rx_frame,RX_FRAME_SIZE); //change this
-                const unsigned char* rx_frame = pcap_next(descr, &header);
-                if(rx_frame == NULL){
-                    perror("Error reading from ethernet");
-                    throw CRpcError(CRpcError::READ_ERROR);
+            const unsigned char* rx_frame = pcap_next(descr, &header);
+            if(rx_frame == NULL){
+				timeout--;
+				i--;
+                if(timeout == 0){
+				    printf("Error reading from ethernet.\n");
+				    throw CRpcError(CRpcError::TIMEOUT);
                 }
-                unsigned int rx_payload_size = rx_frame[12];
-                rx_payload_size = (rx_payload_size << 8) | rx_frame[13];
-                for(unsigned int j =0; j < rx_payload_size;j++){
-                    rx_buffer.push_back(rx_frame[j + ETH_DATA_OFFSET]);
-                }
+			}
+            if(header.len < 14){ // malformed message
                 i--;
+                continue;
+            }
+            
+            unsigned int rx_payload_size = rx_frame[12];
+            rx_payload_size = (rx_payload_size << 8) | rx_frame[13];
+            if(rx_payload_size > 1500) {
+                i--;
+                continue; // message not from test board
+            }
+
+            printf("Received data of length (%d,%d): \n",rx_payload_size, header.len - 14);
+            for(unsigned int j =0; j < rx_payload_size;j++){
+                printf("%02X:",rx_frame[j + ETH_DATA_OFFSET]);
+                rx_buffer.push_back(rx_frame[j + ETH_DATA_OFFSET]);
+            }
+            printf("\n\n");
+            i--;
         }
     }
 }
@@ -77,7 +90,7 @@ void Ethernet::init_connection(std::string interface){
     tx_payload_size = 0;
     
     char errbuf[PCAP_ERRBUF_SIZE];
-    descr = pcap_open_live("eth0", BUFSIZ,1,100,errbuf);
+    descr = pcap_open_live("eth0", BUFSIZ,0,100,errbuf);
     if(descr == NULL){
 		throw CRpcError(CRpcError::ETH_ERROR);
 	}
