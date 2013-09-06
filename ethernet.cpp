@@ -46,13 +46,13 @@ void Ethernet::Read(void *buffer, unsigned int size){
         } else{
             const unsigned char* rx_frame = pcap_next(descr, &header);
             if(rx_frame == NULL){
-				timeout--;
-				i--;
+                timeout--;
+                i--;
                 if(timeout == 0){
-				    printf("Error reading from ethernet.\n");
-				    throw CRpcError(CRpcError::TIMEOUT);
+                    printf("Error reading from ethernet.\n");
+                    throw CRpcError(CRpcError::TIMEOUT);
                 }
-			}
+            }
             if(header.len < 14){ // malformed message
                 i--;
                 continue;
@@ -63,6 +63,18 @@ void Ethernet::Read(void *buffer, unsigned int size){
             if(rx_payload_size > 1500) {
                 i--;
                 continue; // message not from test board
+            }
+
+            bool mac_match = true;
+            for(int j = 0; j < 6; j++){
+                if(rx_frame[6 + j] != src_addr[j]){
+                    mac_match = false;
+                    break;
+                } 
+            }
+            if(mac_match){ // message sent from host
+                i--;
+                continue;
             }
 
             printf("Received data of length (%d,%d): \n",rx_payload_size, header.len - 14);
@@ -90,10 +102,10 @@ void Ethernet::init_connection(std::string interface){
     tx_payload_size = 0;
     
     char errbuf[PCAP_ERRBUF_SIZE];
-    descr = pcap_open_live("eth0", BUFSIZ,0,100,errbuf);
+    descr = pcap_open_live("en0", BUFSIZ,0,100,errbuf);
     if(descr == NULL){
-		throw CRpcError(CRpcError::ETH_ERROR);
-	}
+        throw CRpcError(CRpcError::ETH_ERROR);
+    }
 
     is_open = true;
     
