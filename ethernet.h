@@ -25,11 +25,13 @@
 class Ethernet : public CRpcIo
 {
     void init_tx_frame();
-    void init_connection(std::string eth_if);
+    void init_connection();
 
     //pcap data structures
     pcap_t* descr;
     struct pcap_pkthdr header;
+    
+    std::string interface;
      
     //unsigned char      rx_frame[RX_FRAME_SIZE];
     std::deque<unsigned char>    rx_buffer;

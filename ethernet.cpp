@@ -9,16 +9,21 @@
 #include "rpc_error.h"
 
 Ethernet::Ethernet(){
-    std::string eth_if("eth0");
-    init_connection(eth_if);
+    //std::string interface("eth0");
+    //init_connection(interface);
+    interface += "eth0";
+    is_open = false;
 }
 Ethernet::Ethernet(std::string interface) {
-    init_connection(interface);
+	this->interface += interface;
+    is_open = false;
+    //init_connection(interface);
 }
 
 Ethernet::~Ethernet(){}
 
 void Ethernet::Write(const void *buffer, unsigned int size){
+	if(!is_open) init_connection();
     for(unsigned int i = 0 ; i < size; i++){
         if(tx_payload_size == MAX_TX_DATA){
             Flush();
@@ -28,16 +33,19 @@ void Ethernet::Write(const void *buffer, unsigned int size){
     }
 }
 void Ethernet::Flush(){
+	if(!is_open) init_connection();
     tx_frame[12] = tx_payload_size >> 8;
     tx_frame[13] = tx_payload_size;
     pcap_sendpacket(descr, tx_frame, tx_payload_size + ETH_DATA_OFFSET);
     tx_payload_size = 0;
 }
 void Ethernet::Clear(){
+	if(!is_open) init_connection();
     tx_payload_size = 0;
     rx_buffer.clear();
 }
 void Ethernet::Read(void *buffer, unsigned int size){
+	if(!is_open) init_connection();
     int timeout = 1000;
     for(unsigned int i = 0; i < size; i++){
         if(!rx_buffer.empty()){
@@ -78,19 +86,18 @@ void Ethernet::Read(void *buffer, unsigned int size){
 
 
 void Ethernet::Close(){
-    pcap_close(descr);
+	if(is_open)	pcap_close(descr);
 }
 
-void Ethernet::init_connection(std::string interface){
+void Ethernet::init_connection(){
     rx_buffer.resize(0);
-    is_open = false;
     for(int i =0; i < TX_FRAME_SIZE; i++){
         tx_frame[i] = 0;
     }
     tx_payload_size = 0;
     
     char errbuf[PCAP_ERRBUF_SIZE];
-    descr = pcap_open_live("eth0", BUFSIZ,0,100,errbuf);
+    descr = pcap_open_live(interface.c_str(), BUFSIZ,1,100,errbuf);
     if(descr == NULL){
 		throw CRpcError(CRpcError::ETH_ERROR);
 	}
@@ -102,6 +109,8 @@ void Ethernet::init_connection(std::string interface){
 
 void Ethernet::init_tx_frame(){
     
+   
+
     //TODO: find MACs dynamically
     dst_addr[0] = 0xFF;
     dst_addr[1] = 0xFF;
