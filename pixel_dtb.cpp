@@ -11,8 +11,9 @@
 bool CTestboard::EnumNext(string &name)
 {
 	char s[64];
-	if (!usb.EnumNext(s)) return false;
+	if (!rpc_io->EnumNext(s)) return false;
 	name = s;
+	printf("%s\n", name.c_str());
 	return true;
 }
 
@@ -20,13 +21,13 @@ bool CTestboard::EnumNext(string &name)
 bool CTestboard::Enum(unsigned int pos, string &name)
 {
 	char s[64];
-	if (!usb.Enum(s, pos)) return false;
+	if (!rpc_io->Enum(s, pos)) return false;
 	name = s;
 	return true;
 }
 
 
-bool CTestboard::FindDTB(string &usbId)
+bool CTestboard::FindDTB(string &rpcId)
 {
 	string name;
 	vector<string> devList;
@@ -60,7 +61,7 @@ bool CTestboard::FindDTB(string &usbId)
 
 	if (devList.size() == 1)
 	{
-		usbId = devList[0];
+		rpcId = devList[0];
 		return true;
 	}
 
@@ -96,15 +97,15 @@ bool CTestboard::FindDTB(string &usbId)
 		return false;
 	}
 
-	usbId = devList[nr];
+	rpcId = devList[nr];
 	return true;
 }
 
 
-bool CTestboard::Open(string &usbId, bool init)
+bool CTestboard::Open(string &rpcId, bool init)
 {
 	rpc_Clear();
-	if (!usb.Open(&(usbId[0]))) return false;
+	if (!rpc_io->Open(&(rpcId[0]))) return false;
 
 	if (init) Init();
 	return true;
@@ -114,7 +115,7 @@ bool CTestboard::Open(string &usbId, bool init)
 void CTestboard::Close()
 {
 //	if (usb.Connected()) Daq_Close();
-	usb.Close();
+	rpc_io->Close();
 	rpc_Clear();
 }
 

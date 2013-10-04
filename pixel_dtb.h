@@ -101,11 +101,11 @@ public:
 
 	// === DTB connection ====================================================
 
-	bool EnumFirst(unsigned int &nDevices) { return usb.EnumFirst(nDevices); };
+	bool EnumFirst(unsigned int &nDevices) { return rpc_io->EnumFirst(nDevices); };
 	bool EnumNext(string &name);
 	bool Enum(unsigned int pos, string &name);
 
-	bool FindDTB(string &usbId);
+	bool FindDTB(string &rpcId);
 	bool Open(string &name, bool init=true); // opens a connection
 	void Close();				// closes the connection to the testboard
 
@@ -114,9 +114,9 @@ public:
 	void ClosePipe() { pipe.Close(); }
 #endif
 
-	bool IsConnected() { return usb.Connected(); }
+	bool IsConnected() { return rpc_io->Connected(); }
 	const char * ConnectionError()
-	{ return usb.GetErrorMsg(usb.GetLastError()); }
+	{ return rpc_io->GetErrorMsg(rpc_io->GetLastError()); }
 
 	void Flush() { rpc_io->Flush(); }
 	void Clear() { rpc_io->Clear(); }

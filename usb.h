@@ -49,12 +49,12 @@ public:
 	}
 	~CUSB() { Close(); }
 	int GetLastError() { return ftStatus; }
-	static const char* GetErrorMsg(int error);
+	const char* GetErrorMsg(int error);
+	
 	bool EnumFirst(unsigned int &nDevices);
 	bool EnumNext(char name[]);
 	bool Enum(char name[], unsigned int pos);
 	bool Open(char serialNumber[]);
-	void Close();
 	bool Connected() { return isUSB_open; };
 
 
@@ -62,6 +62,7 @@ public:
 	void Flush();
 	void Clear();
 	void Read(void *buffer, unsigned int size);
+	void Close();
 };
 
 #endif
