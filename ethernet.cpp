@@ -190,6 +190,15 @@ void CEthernet::Flush(){
 	
     tx_frame[17] = tx_payload_size >> 8;
     tx_frame[18] = tx_payload_size;
+    
+    /*
+	printf("Sent packet: ");
+	for(int i = 0; i < tx_payload_size + ETH_HEADER_SIZE; i++){
+		printf("%02X:",tx_frame[i]);
+	}
+	printf("\n\n");
+    */
+    
     pcap_sendpacket(descr, tx_frame, tx_payload_size + ETH_HEADER_SIZE);
     tx_payload_size = 0;
 }
@@ -198,7 +207,7 @@ void CEthernet::Clear(){
     rx_buffer.clear();
 }
 void CEthernet::Read(void *buffer, unsigned int size){
-    int timeout = 1000;
+    int timeout = 10000;
     for(unsigned int i = 0; i < size; i++){
         if(!rx_buffer.empty()){
             ((unsigned char*)buffer)[i] = rx_buffer.front();
@@ -213,14 +222,29 @@ void CEthernet::Read(void *buffer, unsigned int size){
                     throw CRpcError(CRpcError::TIMEOUT);
                 }
             }
+            /*
+			printf("Received packet: ");
+            for(int i = 0; i < header.len; i++){
+				printf("%02X:",rx_frame[i]);
+			}
+			printf("\n");
+			*/
             if(header.len < ETH_HEADER_SIZE){ // malformed message
                 i--;
                 continue;
             }
             
             if(!packet_equals(rx_frame,host_mac,6) || 
-               !packet_equals(rx_frame+14,host_pid,2)) continue;
+               !packet_equals(rx_frame+14,host_pid,2) ||
+               rx_frame[16] != 0) {
+				   i--;
+				   continue;
+			   }
             
+            /*
+			printf("Passed Filter\n\n");
+			*/
+			
             unsigned int rx_payload_size = rx_frame[17];
             rx_payload_size = (rx_payload_size << 8) | rx_frame[18];
 

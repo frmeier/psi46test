@@ -13,7 +13,7 @@ void print_device_name(int n, const std::string &name){
 	
 	if(name.compare(4,3,"ETH") == 0){
 		printf("%2u: DTB_ETH ", n);
-		for(unsigned int i = 7; i < name.size();i++){
+		for(unsigned int i = 7; i < (7+6);i++){
 			printf("%02X ", (unsigned char)name[i]);
 		}
 	} else{
@@ -117,7 +117,7 @@ bool CTestboard::FindDTB(string &rpcId)
 	printf("\nConnected DTBs:\n");
 	for (nr=0; nr<devList.size(); nr++)
 	{
-		print_device_name(nr, devList[nr]);
+		print_device_name(nr+1, devList[nr]);
 		CRpcIo* interface = (devList[nr].compare(4,3,"ETH") ? (CRpcIo*)usb : (CRpcIo*)ethernet);
 		if (Open(devList[nr], false, interface))
 		{
@@ -135,18 +135,18 @@ bool CTestboard::FindDTB(string &rpcId)
 		else printf(" - in use\n");
 	}
 
-	printf("Please choose DTB (0-%u): ", (nDev-1));
+	printf("Please choose DTB (1-%u): ", (unsigned int)devList.size());
 	char choice[8];
 	fgets(choice, 8, stdin);
 	sscanf (choice, "%d", &nr);
-	if (nr >= devList.size())
+	if (nr > devList.size() || nr <= 0)
 	{
 		nr = 0;
 		printf("No DTB opened\n");
 		return false;
 	}
 
-	rpcId = devList[nr];
+	rpcId = devList[nr-1];
 	rpc_io = (rpcId.compare(4,3,"ETH") ? (CRpcIo*)usb : (CRpcIo*)ethernet);
 	return true;
 }
