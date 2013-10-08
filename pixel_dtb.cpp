@@ -2,66 +2,114 @@
 
 #include "pixel_dtb.h"
 #include <stdio.h>
+#include <vector>
 
 #ifndef _WIN32
 #include <unistd.h>
 #include <iostream>
 #endif
 
-bool CTestboard::EnumNext(string &name)
-{
-	char s[64];
-	if (!rpc_io->EnumNext(s)) return false;
-	name = s;
-	printf("%s\n", name.c_str());
-	return true;
+void print_device_name(int n, const std::string &name){
+	
+	if(name.compare(4,3,"ETH") == 0){
+		printf("%2u: DTB_ETH ", n);
+		for(unsigned int i = 7; i < name.size();i++){
+			printf("%02X ", (unsigned char)name[i]);
+		}
+	} else{
+		printf("%2u: %s", n, name.c_str());
+	}
+	printf("\n");
 }
 
 
-bool CTestboard::Enum(unsigned int pos, string &name)
+bool CTestboard::EnumFirst(unsigned int &nDevices, CRpcIo* io) 
+{
+	return io->EnumFirst(nDevices); 
+}
+
+bool CTestboard::EnumNext(string &name, CRpcIo* io)
 {
 	char s[64];
-	if (!rpc_io->Enum(s, pos)) return false;
+	if (!io->EnumNext(s)) return false;
 	name = s;
 	return true;
 }
 
+bool CTestboard::Enum(unsigned int pos, string &name, CRpcIo* io)
+{
+	char s[64];
+	if (!io->Enum(s, pos)) return false;
+	name = s;
+	return true;
+}
 
 bool CTestboard::FindDTB(string &rpcId)
-{
-	string name;
+{	
+	vector<CRpcIo*> ifList;
+	if(ethernet == NULL){
+		try{
+			ethernet = new CEthernet();
+			ifList.push_back(ethernet);
+			printf("opened ethernet\n");
+		} catch(CRpcError e){
+			printf("Error initiating ethernet. Please ensure \
+			       proper permissions are granted.\n");
+		}
+	} else{ifList.push_back(ethernet);}
+	
+	if(usb == NULL){
+		try{
+			usb = new CUSB();
+			ifList.push_back(usb);
+			printf("opened usb\n");
+		} catch(CRpcError e){
+			printf("Error initiating usb. Please ensure \
+			       proper permissions are granted.\n");
+		}
+	} else{ifList.push_back(usb);}
+	
+	if(ifList.size() == 0){
+		printf("Could not open any interfaces.\n");
+		return false;
+	}
+	
+	string name;	
 	vector<string> devList;
 	unsigned int nDev;
 	unsigned int nr;
-
-	try
-	{
-		if (!EnumFirst(nDev)) throw int(1);
-		for (nr=0; nr<nDev; nr++)
-		{
-			if (!EnumNext(name)) continue;
-			if (name.size() < 4) continue;
-			if (name.compare(0, 4, "DTB_") == 0) devList.push_back(name);
+	
+	
+	for(unsigned int i = 0; i < ifList.size(); i++){
+		CRpcIo *interface = ifList[i];
+		try{
+			if (!EnumFirst(nDev,interface)) continue;
+			printf("Found %d devices on interface %s \n", nDev, interface->Name());
+			for (nr=0; nr<nDev; nr++)
+			{
+				if (!EnumNext(name,interface)) continue;
+				if (name.size() < 4) continue;
+				if (name.compare(0, 4, "DTB_") == 0) devList.push_back(name);
+			}
+		}catch(CRpcError e){
+				printf("Error querying on interface %s", interface->Name());
 		}
 	}
-	catch (int e)
-	{
-		switch (e)
-		{
-		case 1: printf("Cannot access the USB driver\n"); return false;
-		default: return false;
-		}
-	}
-
+	
 	if (devList.size() == 0)
 	{
 		printf("No DTB connected.\n");
 		return false;
 	}
-
+	
 	if (devList.size() == 1)
 	{
 		rpcId = devList[0];
+		if(devList[0].compare(4,3,"ETH") == 0){
+			rpc_io = ethernet;
+		} else{
+			rpc_io = usb;
+		}
 		return true;
 	}
 
@@ -69,8 +117,9 @@ bool CTestboard::FindDTB(string &rpcId)
 	printf("\nConnected DTBs:\n");
 	for (nr=0; nr<devList.size(); nr++)
 	{
-		printf("%2u: %s", nr, devList[nr].c_str());
-		if (Open(devList[nr], false))
+		print_device_name(nr, devList[nr]);
+		CRpcIo* interface = (devList[nr].compare(4,3,"ETH") ? (CRpcIo*)usb : (CRpcIo*)ethernet);
+		if (Open(devList[nr], false, interface))
 		{
 			try
 			{
@@ -81,7 +130,7 @@ bool CTestboard::FindDTB(string &rpcId)
 			{
 				printf("  Not identifiable\n");
 			}
-			Close();
+			Close(interface);
 		}
 		else printf(" - in use\n");
 	}
@@ -98,25 +147,34 @@ bool CTestboard::FindDTB(string &rpcId)
 	}
 
 	rpcId = devList[nr];
+	rpc_io = (rpcId.compare(4,3,"ETH") ? (CRpcIo*)usb : (CRpcIo*)ethernet);
 	return true;
 }
 
-
-bool CTestboard::Open(string &rpcId, bool init)
+bool CTestboard::Open(string &rpcId, bool init, CRpcIo* io)
 {
 	rpc_Clear();
-	if (!rpc_io->Open(&(rpcId[0]))) return false;
+	if (!io->Open(&(rpcId[0]))) return false;
 
 	if (init) Init();
 	return true;
 }
 
 
-void CTestboard::Close()
+bool CTestboard::Open(string &rpcId, bool init)
 {
-//	if (usb.Connected()) Daq_Close();
+	return Open(rpcId, init, rpc_io);
+}
+
+void CTestboard::Close(CRpcIo* io)
+{
 	rpc_io->Close();
 	rpc_Clear();
+}
+
+void CTestboard::Close()
+{
+	Close(rpc_io);
 }
 
 

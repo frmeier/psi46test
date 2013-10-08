@@ -48,6 +48,7 @@ public:
 		enumPos = enumCount = 0;
 	}
 	~CUSB() { Close(); }
+	const char* Name() {return "USB";};
 	int GetLastError() { return ftStatus; }
 	const char* GetErrorMsg(int error);
 	

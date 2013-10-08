@@ -39,7 +39,7 @@ bool packet_equals(const unsigned char* pkt1,
 #include <cstdlib>
 #include <string.h>
 
-void get_MAC(const char* if_name, unsigned char* buffer){
+void Get_MAC(const char* if_name, unsigned char* buffer){
     ifaddrs * ifap = 0;
     if(getifaddrs(&ifap) == 0){
         ifaddrs * iter = ifap;
@@ -73,7 +73,7 @@ void get_MAC(const char* if_name, unsigned char* buffer){
 #include <stdio.h>
 #include <stdlib.h>
 
-void get_MAC(const char* if_name, unsigned char* buffer){
+void Get_MAC(const char* if_name, unsigned char* buffer){
     int mib[6];
     size_t len;
     char            *buf;
@@ -120,7 +120,7 @@ void get_MAC(const char* if_name, unsigned char* buffer){
 #include <winsock2.h>
 #include <iphlpapi.h>
 
-void get_MAC(const char* if_name, unsigned char* buffer){
+void Get_MAC(const char* if_name, unsigned char* buffer){
 
     std::vector<unsigned char> buf;
     DWORD bufLen = 0;
@@ -152,23 +152,23 @@ void get_MAC(const char* if_name, unsigned char* buffer){
 
 
 
-Ethernet::Ethernet(){
+CEthernet::CEthernet(){
 	unsigned int ipid = getpid();
 	host_pid[0] = (unsigned char) (ipid>>8);
 	host_pid[1] = (unsigned char) ipid;
     interface += "eth0";
     is_open = false;
-    init_interface();
+    InitInterface();
 }
 
-Ethernet::~Ethernet(){
+CEthernet::~CEthernet(){
     if(is_open){
 		Close();
 		pcap_close(descr);
 	}
 }
 
-void Ethernet::Write(const void *buffer, unsigned int size){
+void CEthernet::Write(const void *buffer, unsigned int size){
     for(unsigned int i = 0 ; i < size; i++){
         if(tx_payload_size == MAX_TX_DATA){
             Flush();
@@ -177,7 +177,7 @@ void Ethernet::Write(const void *buffer, unsigned int size){
         tx_payload_size++;
     }
 }
-void Ethernet::Flush(){
+void CEthernet::Flush(){
 	for(int i =0; i < 6; i++){
 		tx_frame[i] = dtb_mac[i];
 		tx_frame[i+6] = host_mac[i];
@@ -193,11 +193,11 @@ void Ethernet::Flush(){
     pcap_sendpacket(descr, tx_frame, tx_payload_size + ETH_HEADER_SIZE);
     tx_payload_size = 0;
 }
-void Ethernet::Clear(){
+void CEthernet::Clear(){
     tx_payload_size = 0;
     rx_buffer.clear();
 }
-void Ethernet::Read(void *buffer, unsigned int size){
+void CEthernet::Read(void *buffer, unsigned int size){
     int timeout = 1000;
     for(unsigned int i = 0; i < size; i++){
         if(!rx_buffer.empty()){
@@ -232,7 +232,7 @@ void Ethernet::Read(void *buffer, unsigned int size){
     }
 }
 
-void Ethernet::init_interface(){
+void CEthernet::InitInterface(){
     rx_buffer.resize(0);
     for(int i =0; i < TX_FRAME_SIZE; i++){
         tx_frame[i] = 0;
@@ -242,19 +242,19 @@ void Ethernet::init_interface(){
     char errbuf[PCAP_ERRBUF_SIZE];
     descr = pcap_open_live(interface.c_str(), BUFSIZ,0,100,errbuf);
     if(descr == NULL){
-        throw CRpcError(CRpcError::ETH_ERROR);
+        throw CRpcError(CRpcError::IF_INIT_ERROR);
     }
     
-    get_MAC(interface.c_str(), host_mac); 
+    Get_MAC(interface.c_str(), host_mac); 
     for(int i = 0; i < 6; i++) tx_frame[i+6] = host_mac[i];
 }
 
-bool Ethernet::EnumFirst(unsigned int &nDevices){
-	hello();
+bool CEthernet::EnumFirst(unsigned int &nDevices){
+	Hello();
 	nDevices = MAC_addresses.size();
 	return true;
 }
-bool Ethernet::EnumNext(char name[]){
+bool CEthernet::EnumNext(char name[]){
 	string MAC = MAC_addresses[MAC_counter];
 	MAC_counter = (MAC_counter + 1) % MAC_addresses.size();
 	
@@ -263,7 +263,7 @@ bool Ethernet::EnumNext(char name[]){
 	}
 	return true;
 }
-bool Ethernet::Enum(char name[], unsigned int pos){
+bool CEthernet::Enum(char name[], unsigned int pos){
 	string MAC = MAC_addresses[pos];
 	
 	for(int i = 0; i < 10; i++){
@@ -272,9 +272,9 @@ bool Ethernet::Enum(char name[], unsigned int pos){
 	return true;
 }
 
-bool Ethernet::Open(char MAC_address[]){
+bool CEthernet::Open(char MAC_address[]){
 	if(is_open) Close();
-	bool success = claim(((unsigned char*)MAC_address)+7);
+	bool success = Claim(((unsigned char*)MAC_address)+7);
 	if(!success) return false;
 	for(int i =0; i < 6; i++){
 		dtb_mac[i] = MAC_address[7+i];
@@ -283,9 +283,9 @@ bool Ethernet::Open(char MAC_address[]){
 	return true;
 }
 
-void Ethernet::Close(){
+void CEthernet::Close(){
 	if(!is_open) return;
-	bool success = unclaim();
+	bool success = Unclaim();
 	if(!success) throw CRpcError(CRpcError::ETH_ERROR);
 	for(int i =0; i < 6; i++){
 		dtb_mac[i] = 0x00;
@@ -294,7 +294,7 @@ void Ethernet::Close(){
 	is_open = false;
 }
 
-void Ethernet::hello(){
+void CEthernet::Hello(){
     unsigned char packet[17];
 	
 	for(int i = 0; i < 6; i++){
@@ -328,13 +328,13 @@ void Ethernet::hello(){
 		if(packet[16] != 0x1) continue;
 		
 		
-		string mac("DTB_MAC      ");
+		string mac("DTB_ETH      ");
 		for(int i = 0; i < 6; i++) mac[7+i] = rx_frame[6+i];
 		MAC_addresses.push_back(mac);
 	}
 }
 
-bool Ethernet::claim(const unsigned char* MAC){
+bool CEthernet::Claim(const unsigned char* MAC){
     unsigned char packet[17];
 	
 	for(int i = 0; i < 6; i++){
@@ -369,7 +369,7 @@ bool Ethernet::claim(const unsigned char* MAC){
 	return false;
 }
 
-bool Ethernet::unclaim(){
+bool CEthernet::Unclaim(){
     unsigned char packet[17];
 	
 	for(int i = 0; i < 6; i++){

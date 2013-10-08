@@ -36,8 +36,12 @@ const char* CUSB::GetErrorMsg(int error)
 
 bool CUSB::EnumFirst(unsigned int &nDevices)
 {
+	try{
 	ftStatus = FT_ListDevices(&enumCount,
 		NULL,FT_LIST_NUMBER_ONLY|FT_OPEN_BY_SERIAL_NUMBER);
+	} catch(int e){
+		throw CRpcError(CRpcError::IF_INIT_ERROR);
+	}
 	if (ftStatus != FT_OK)
 	{
 		nDevices = enumCount = enumPos = 0;

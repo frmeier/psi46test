@@ -27,14 +27,13 @@
 #define ETH_HEADER_SIZE 19
 
 
-class Ethernet : public CRpcIo
+class CEthernet : public CRpcIo
 {
-    void init_interface();
-    void init_tx_frame();
+    void InitInterface();
     
-    void hello();
-    bool claim(const unsigned char* MAC);
-    bool unclaim();
+    void Hello();
+    bool Claim(const unsigned char* MAC);
+    bool Unclaim();
 
     //pcap data structures
     pcap_t* descr;
@@ -54,8 +53,10 @@ class Ethernet : public CRpcIo
     unsigned int       tx_payload_size;//data in tx buffer minus header(14 bytes)
     bool                is_open;
 public:
-    Ethernet();
-    ~Ethernet();
+    CEthernet();
+    ~CEthernet();
+	
+	const char* Name() { return "Ethernet";};
     
 	int GetLastError() { return 0; }
 	const char* GetErrorMsg(int error){return NULL;};
@@ -70,6 +71,7 @@ public:
     void Flush();
     void Clear();
     void Read(void *buffer, unsigned int size);
+    void Close(CRpcIo* io);
     void Close();
     bool IsOpen();
 };

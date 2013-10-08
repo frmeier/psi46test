@@ -126,6 +126,6 @@ int main(int argc, char* argv[])
 	{
 		e.What();
 	}
-
+    tb.Close();
 	return 0;
 }

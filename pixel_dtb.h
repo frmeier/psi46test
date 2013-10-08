@@ -14,7 +14,6 @@
 
 #include "profiler.h"
 #define RPC_PROFILING PROFILING
-#define USE_ETHERNET
 
 // #define RPC_MULTITHREADING
 #include "rpc.h"
@@ -74,17 +73,13 @@ class CTestboard
 #ifdef _WIN32
 	CPipeClient pipe;
 #endif
-	CUSB usb;
-	Ethernet ethernet;
+	CUSB *usb;
+	CEthernet *ethernet;
 
 public:
 	CRpcIo& GetIo() { return *rpc_io; }
 
-#ifdef USE_ETHERNET
-	CTestboard() { RPC_INIT rpc_io = &ethernet; }
-#else
-	CTestboard() { RPC_INIT rpc_io = &usb; }
-#endif
+	CTestboard() { RPC_INIT}
 	~CTestboard() { RPC_EXIT }
 
 
@@ -101,13 +96,15 @@ public:
 
 	// === DTB connection ====================================================
 
-	bool EnumFirst(unsigned int &nDevices) { return rpc_io->EnumFirst(nDevices); };
-	bool EnumNext(string &name);
-	bool Enum(unsigned int pos, string &name);
+	bool EnumFirst(unsigned int &nDevices, CRpcIo* io);
+	bool EnumNext(string &name, CRpcIo* io);
+	bool Enum(unsigned int pos, string &name, CRpcIo* io);
 
 	bool FindDTB(string &rpcId);
-	bool Open(string &name, bool init=true); // opens a connection
-	void Close();				// closes the connection to the testboard
+	bool Open(string &rpcId, bool init, CRpcIo* io);// opens a connection
+	bool Open(string &name, bool init=true); //uses current rpc_io
+	void Close(CRpcIo* io);				// closes the connection to the testboard
+	void Close();				// uses current rpc_io
 
 #ifdef _WIN32
 	bool OpenPipe(const char *name) { return pipe.Open(name); }

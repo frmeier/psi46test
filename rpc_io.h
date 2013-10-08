@@ -4,13 +4,13 @@
 
 #include "rpc_error.h"
 
-
 class CRpcIo
 {
 protected:
 	void Dump(const char *msg, const void *buffer, unsigned int size);
 public:
 	virtual ~CRpcIo() {}
+	virtual const char* Name() = 0;
 	// IO methods
 	virtual void Write(const void *buffer, unsigned int size) = 0;
 	virtual void Flush() = 0;
@@ -32,6 +32,7 @@ public:
 class CRpcIoNull : public CRpcIo
 {
 public:
+	const char* Name() {return "NULL"; }
 	// IO methods
 	void Write(const void *buffer, unsigned int size) { throw CRpcError(CRpcError::WRITE_ERROR); }
 	void Flush() {}
@@ -39,13 +40,13 @@ public:
 	void Read(void *buffer, unsigned int size) { throw CRpcError(CRpcError::READ_ERROR); }
 	void Close() {}
 	// Error processing
-	int GetLastError(){}
-	const char* GetErrorMsg(int error){}
+	int GetLastError(){return 0;}
+	const char* GetErrorMsg(int error){return NULL;}
 	// Connection establishment
-	bool EnumFirst(unsigned int &nDevices){}
-	bool EnumNext(char name[]){}
-	bool Enum(char name[], unsigned int pos){}
-	bool Open(char serialNumber[]){}
-	bool Connected(){}
+	bool EnumFirst(unsigned int &nDevices){ return false;}
+	bool EnumNext(char name[]){return false;}
+	bool Enum(char name[], unsigned int pos){return false;}
+	bool Open(char serialNumber[]){return false;}
+	bool Connected(){return false;}
 };
 
